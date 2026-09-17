@@ -1,0 +1,25 @@
+{
+  "nume": "Ploiești 360",
+  "slogan": "Explorează Ploieștiul la 360°",
+  "url": "https://ploiesti360.ro",
+  "urlNota": "[DE VERIFICAT] domeniul final al site-ului. Schimbă 'url' după ce cumperi domeniul; sitemap-ul, canonical-urile și Open Graph se generează din el.",
+  "basePath": "",
+  "basePathNota": "Subfolderul în care e publicat site-ul. Gol pentru domeniu propriu; pe GitHub Pages workflow-ul setează automat /ploiesti360.",
+  "descriere": "Ploiești 360 este hub-ul central pentru tot ce se poate vedea și face în Ploiești: atracții, clădiri istorice, muzee, restaurante, cafenele, parcuri, evenimente și știri locale.",
+  "email": "[EMAIL]",
+  "formularAction": "",
+  "formularActionNota": "Gol = Netlify Forms (merge doar pe Netlify). Pe GitHub Pages/Vercel pune un endpoint Formspree, ex. https://formspree.io/f/xxxxxxxx.",
+  "social": {
+    "instagram": "[LINK INSTAGRAM]",
+    "facebook": "[LINK FACEBOOK]",
+    "tiktok": "[LINK TIKTOK]"
+  },
+  "instagramHandle": "@ploiesti360",
+  "instagramHandleNota": "[DE VERIFICAT] handle-ul real de Instagram",
+  "ratingData": "2026-09-17",
+  "ratingSursa": "Rating Google, citit prin Restaurant Guru la 17.09.2026. Verifică direct pe Google Maps înainte de lansare.",
+  "limba": "ro",
+  "locale": "ro_RO",
+  "fondat": "2026",
+  "fondatNota": "[DE VERIFICAT] anul în care a pornit proiectul (apare în JSON-LD Organization)"
+}
