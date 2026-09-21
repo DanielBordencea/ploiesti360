@@ -88,7 +88,7 @@ const NAV = [
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const PH = /\[(DE VERIFICAT|DE CONFIRMAT|RATING DE VERIFICAT|EXEMPLU|LINK INSTAGRAM|LINK FACEBOOK|LINK TIKTOK|EMAIL|NUMELE CORECT)[^\]]*\]/g;
 const isPH = s => /^\[[^\]]*\]$/.test(String(s || '').trim());
-const fmt = s => esc(s).replace(PH, m => `<mark class="de-verificat">${m}</mark>`);
+const fmt = s => esc(cleanPH(s)); // marcajele [DE VERIFICAT] rămân în JSON ca listă de lucru, dar nu se afișează
 const cleanPH = s => String(s || '').replace(PH, '').replace(/\s+/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
 function inline(s) {
   let t = fmt(s);
@@ -278,7 +278,7 @@ ${scripts.map(s => `<script src="${s}" defer></script>`).join('\n')}
 
 /* ---------- componente ---------- */
 function ratingHtml(loc, mic = false) {
-  if (!loc.rating || loc.rating.valoare == null) return `<p class="rating rating--lipsa"><mark class="de-verificat">[RATING DE VERIFICAT]</mark></p>`;
+  if (!loc.rating || loc.rating.valoare == null) return '';
   return `<p class="rating"><span class="rating__stea" aria-hidden="true">${SVG.star}</span><strong>${loc.rating.valoare.toFixed(1)}</strong><span class="rating__nr">(${nrRo(loc.rating.recenzii)} recenzii)</span>${mic ? '' : ` <small class="rating__nota">rating Google la data de ${dataRoNum(site.ratingData)}</small>`}</p>`;
 }
 function cardLoc(loc, { rating = false, i = 0, mic = false } = {}) {
@@ -595,7 +595,7 @@ for (const loc of locuri) {
           ${loc.maps ? `<a class="btn" href="${esc(loc.maps)}" target="_blank" rel="noopener">Vezi pe Google Maps ${SVG.arrowRight}</a>` : ''}
           ${loc.lat != null ? `<a class="btn btn--contur" href="/harta/?loc=${esc(loc.slug)}">Vezi pe harta noastră</a>` : ''}
         </div>
-        ${loc.coordAprox ? `<p class="nota nota--mic">Poziția pe hartă este aproximativă <mark class="de-verificat">[DE VERIFICAT]</mark>.</p>` : ''}
+        ${loc.coordAprox ? `<p class="nota nota--mic">Poziția pe hartă este aproximativă.</p>` : ''}
       </aside>
     </div>
     <section class="fisa__poveste">
@@ -702,7 +702,7 @@ for (const loc of locuri) {
   <div class="container container--ingust">
     ${crumbs([['/', 'Acasă'], ['/stiri/', 'Știri'], [null, st.titlu]])}
     <header class="articol__cap">
-      <p class="articol__meta"><span class="badge">${fmt(st.categorie)}</span> <time datetime="${esc(st.data)}">${dataRo(st.data)}</time>${st.dataNota ? ` <mark class="de-verificat">${esc(st.dataNota)}</mark>` : ''}</p>
+      <p class="articol__meta"><span class="badge">${fmt(st.categorie)}</span> <time datetime="${esc(st.data)}">${dataRo(st.data)}</time></p>
       <h1 class="subliniat"><span>${fmt(st.titlu)}</span>${SVG.underline()}</h1>
       <p class="lead">${fmt(st.rezumat)}</p>
     </header>
