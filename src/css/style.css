@@ -239,6 +239,10 @@ mark.de-verificat { background: var(--galben); color: var(--navy); font-weight: 
 .colaj--mare img { aspect-ratio: 4 / 3; }
 .colaj--articol { max-width: 720px; margin: 0 auto 2rem; }
 .card--r .colaj::before { transform: rotate(1.5deg); }
+.foto-credit { position: relative; margin: .5rem 2% 0; font-size: .78rem; color: var(--navy); opacity: .8; text-align: right; }
+.foto-credit a { color: inherit; }
+.lista-credite { font-size: .85rem; padding-left: 1.2rem; margin: 0; column-width: 320px; column-gap: 2rem; }
+.lista-credite li { padding: .2rem 0; break-inside: avoid; }
 
 /* ---------- grid & carduri ---------- */
 .grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
@@ -292,6 +296,13 @@ mark.de-verificat { background: var(--galben); color: var(--navy); font-weight: 
 .ev__meta a { color: var(--navy); }
 .ev__text { margin: .35rem 0 .2rem; }
 .ev .btn { align-self: flex-start; margin-top: .25rem; }
+.ev:has(.ev__img) { grid-template-columns: 82px 1fr 240px; }
+.ev__img { margin: .6rem .9rem .6rem 0; padding: 4% 3%; align-self: center; }
+.ev__img .foto-credit { margin: .3rem 0 0; font-size: .68rem; }
+@media (max-width: 760px) {
+  .ev:has(.ev__img) { grid-template-columns: 82px 1fr; }
+  .ev__img { grid-column: 2; margin: 0 1rem .9rem; }
+}
 .filtre-ev { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.5rem; }
 .filtre-ev .filtre { margin: .5rem 0; }
 .filtre-ev__rand { display: flex; align-items: center; gap: .6rem; }
@@ -368,6 +379,15 @@ mark.de-verificat { background: var(--galben); color: var(--navy); font-weight: 
 .insta__logo img { transform: scale(1.06); }
 .insta__label { position: absolute; bottom: 10px; left: 12px; font: 700 .72rem/1 var(--font-text); text-transform: uppercase; letter-spacing: .08em; background: var(--navy); color: var(--galben); padding: .3em .5em; }
 @media (min-width: 640px) { .insta { grid-template-columns: repeat(6, 1fr); } }
+.insta__tile--foto { overflow: hidden; }
+.insta__tile--foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.insta__tile--foto:hover img { filter: saturate(1.1); }
+.insta__mai { position: absolute; bottom: 10px; left: 12px; right: 12px; display: flex; align-items: center; gap: .2rem; font: 700 .72rem/1.2 var(--font-text); text-transform: uppercase; letter-spacing: .06em; color: var(--navy); }
+.insta__mai .ico-sageata { width: 22px; flex: none; }
+.insta__nota { margin: .6rem 0 0; font-size: .8rem; color: rgba(255,255,255,.7); }
+/* puține postări: pătrate mai mari, centrate */
+.insta--putine { grid-template-columns: repeat(auto-fit, minmax(150px, 200px)); justify-content: center; }
+@media (min-width: 640px) { .insta--putine { grid-template-columns: repeat(auto-fit, minmax(180px, 220px)); } }
 .urmareste { position: relative; margin-top: 2.5rem; text-align: center; padding: 1.5rem 1rem 0; }
 .urmareste__titlu { font-size: clamp(1.7rem, 4vw, 2.6rem); }
 .urmareste .hero__cta { justify-content: center; }

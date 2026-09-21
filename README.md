@@ -8,7 +8,7 @@ Site static (HTML/CSS/JS) generat dintr-un set de fișiere JSON. Fără framewor
 ploiesti360/
 ├── build.js            # generatorul (Node ≥ 18): JSON → HTML în /dist
 ├── data/
-│   ├── site.json       # nume, domeniu, e-mail, linkuri social, data ratingurilor
+│   ├── site.json       # nume, domeniu, linkuri Instagram/Facebook (singurele canale de contact), data ratingurilor
 │   ├── locuri.json     # atracții, clădiri istorice, restaurante & cafenele, parcuri
 │   ├── evenimente.json # evenimente (listă filtrabilă)
 │   └── stiri.json      # articole / știri
@@ -35,7 +35,11 @@ python3 -m http.server 8080 --directory dist   # deschide http://localhost:8080
 
 **GitHub Pages (activ):** repo-ul `ploiesti360` are workflow-ul `.github/workflows/deploy.yml`: la fiecare push pe `main` rulează `node build.js` și publică `dist/` la `https://<user>.github.io/ploiesti360/`. Workflow-ul setează automat `SITE_URL` și `BASE_PATH=/ploiesti360` (subfolderul), deci nu trebuie schimbat nimic în `data/site.json`. Când vei avea domeniu propriu: adaugă-l în Settings → Pages → Custom domain, pune `url` în `data/site.json` și schimbă în workflow `BASE_PATH=` (gol) și `SITE_URL` cu domeniul.
 
-Formularul de contact NU merge pe GitHub Pages (nu există server). Pune un endpoint Formspree (gratuit) în `data/site.json`, câmpul `formularAction`.
+## Postările de pe Instagram (acasă)
+
+`npm run instagram` (= `node tools/instagram.js`) deschide profilul din `site.json` într-un browser headless (binarul `browse` din gstack, `~/.claude/skills/gstack/browse/dist/browse`, sau `BROWSE_BIN=...`), ia ultimele postări publice (max. `IG_MAX`, implicit 6), descarcă imaginea fiecăreia în `src/img/instagram/` și scrie `data/instagram.json`. Apoi `node build.js` afișează grila reală pe pagina de start. Rulează-l manual când apar postări noi și comite rezultatul; nu rulează în GitHub Actions (Instagram blochează serverele). Fără `data/instagram.json`, grila afișează placeholdere.
+
+Contactul se face exclusiv prin Instagram și Facebook (linkurile din `data/site.json`, câmpul `social`); nu există formular sau e-mail pe site. Creditele foto sunt în `data/credite-foto.json` și apar pe pagina Despre + sub fiecare poză.
 
 
 **Netlify:** conectează repo-ul; `netlify.toml` setează deja build command `node build.js` și publish `dist`. Formularul de contact funcționează automat (Netlify Forms).

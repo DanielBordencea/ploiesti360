@@ -19,6 +19,10 @@ const toateLocurile = readJSON('locuri.json');
 const locuri = toateLocurile.filter(l => l.publicat !== false);
 const evenimente = readJSON('evenimente.json').slice().sort((a, b) => a.data.localeCompare(b.data));
 const stiri = readJSON('stiri.json').slice().sort((a, b) => b.data.localeCompare(a.data));
+const crediteFoto = readJSON('credite-foto.json');
+/* postări Instagram luate cu `node tools/instagram.js`; lipsa fișierului = grilă-placeholder */
+const instagram = fs.existsSync(path.join(DATA, 'instagram.json')) ? readJSON('instagram.json') : { postari: [] };
+const creditFoto = rel => crediteFoto.find(c => c.fisier === rel);
 
 const AZI = new Date().toISOString().slice(0, 10);
 /* Poți suprascrie din mediu: SITE_URL (domeniul public) și BASE_PATH (subfolder, ex. /ploiesti360 pe GitHub Pages) */
@@ -144,8 +148,18 @@ function imagine(rel, eticheta) {
   }
   return '/img/placeholder/' + nume;
 }
+/* legendă vizibilă cu autorul pozei (obligatoriu pentru licențele CC BY / CC BY-SA) */
+function creditCaption(rel, alt) {
+  const c = creditFoto(rel);
+  if (!c || !fs.existsSync(path.join(SRC, 'img', rel))) return `<figcaption class="vizual-ascuns">${esc(alt)}</figcaption>`;
+  return `<figcaption class="foto-credit">Foto: <a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.autor)}</a>, ${esc(c.licenta)}, ${esc(c.sursa)}</figcaption>`;
+}
 const SAILORS_EXISTA = ['Sailors.woff2', 'Sailors.otf'].some(f => fs.existsSync(path.join(SRC, 'fonts', f)));
 const OG_IMPLICIT = fs.existsSync(path.join(SRC, 'img', 'og', 'ploiesti-360-og.png')) ? '/img/og/ploiesti-360-og.png' : '/img/logo-ploiesti-360.png';
+
+/* ---------- canale de contact: doar Instagram și Facebook ---------- */
+const RETELE = [['instagram', 'Instagram'], ['facebook', 'Facebook']];
+const socialUrl = k => (isPH(site.social[k]) || !site.social[k]) ? '/despre/#contact' : site.social[k];
 
 /* ---------- SVG decorative (inline, fără imagini externe) ---------- */
 const SVG = {
@@ -163,8 +177,6 @@ const SVG = {
   tag: `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12V4h8l10 10-8 8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="8.5" r="1.5" fill="currentColor"/></svg>`,
   instagram: `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.3" fill="currentColor"/></svg>`,
   facebook: `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z" fill="currentColor"/></svg>`,
-  tiktok: `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3c.4 2.6 2 4.2 4.5 4.5v3.4c-1.7 0-3.2-.5-4.5-1.4v6a5.5 5.5 0 1 1-5.5-5.5h1v3.5a2 2 0 1 0 1 1.9V3z" fill="currentColor"/></svg>`,
-  mail: `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
   cat: {
     muzeu: `<svg class="ico-cat" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M8 26L32 12l24 14H8zM12 30h40M14 34v16M24 34v16M40 34v16M50 34v16M8 54h48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     cladire: `<svg class="ico-cat" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 54V18l18-8 18 8v36M22 26h6M36 26h6M22 36h6M36 36h6M22 46h6M36 46h6M8 54h48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -184,9 +196,7 @@ function layout({ title, description, urlPath, body, jsonld = [], bodyClass = ''
     const activ = href === '/' ? urlPath === '/' : urlPath.startsWith(href);
     return `<li><a href="${href}"${activ ? ' aria-current="page"' : ''}>${esc(label)}</a></li>`;
   }).join('');
-  const social = [
-    ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']
-  ].map(([k, label]) => {
+  const social = RETELE.map(([k, label]) => {
     const v = site.social[k];
     const href = isPH(v) ? '#' : v;
     return `<a class="social__link" href="${esc(href)}" ${isPH(v) ? `title="${esc(v)}"` : 'target="_blank" rel="noopener"'} aria-label="${label}">${SVG[k]}<span>${label}</span></a>`;
@@ -250,8 +260,8 @@ ${body}
     </nav>
     <div class="subsol__contact">
       <h2 class="subsol__titlu">Contact</h2>
-      <p>${SVG.mail} ${isPH(site.email) ? `<mark class="de-verificat">${esc(site.email)}</mark>` : `<a href="mailto:${esc(site.email)}">${esc(site.email)}</a>`}</p>
-      <p><a href="/despre/#contact">Scrie-ne prin formular ${SVG.arrowRight}</a></p>
+      <p>Scrie-ne pe ${RETELE.map(([k, l]) => `<a href="${esc(socialUrl(k))}" target="_blank" rel="noopener">${l}</a>`).join(' sau ')}. Răspundem la mesaje și comentarii.</p>
+      <p><a href="/despre/#contact">Cum ne contactezi ${SVG.arrowRight}</a></p>
       <p class="subsol__mic">Ratingurile localurilor sunt ratinguri Google la data de ${dataRoNum(site.ratingData)}. Programele pot fi modificate; verifică înainte să pleci.</p>
     </div>
   </div>
@@ -307,6 +317,7 @@ function cardEveniment(ev, i = 0) {
     <p class="ev__text">${fmt(ev.descriere)}</p>
     ${ev.link ? `<a class="btn btn--mic" href="${esc(ev.link)}" target="_blank" rel="noopener">Detalii și bilete</a>` : ''}
   </div>
+  ${ev.imagine ? `<figure class="ev__img colaj"><img src="${imagine(ev.imagine, ev.titlu)}" alt="${esc(ev.alt || ev.titlu)}" loading="lazy" width="800" height="600">${creditFoto(ev.imagine) ? `<figcaption class="foto-credit">Foto: ${esc(creditFoto(ev.imagine).autor)}, ${esc(creditFoto(ev.imagine).licenta)}</figcaption>` : ''}</figure>` : ''}
 </li>`;
 }
 function cardStire(st, i = 0) {
@@ -340,7 +351,6 @@ const ldOrganization = () => {
   };
   const same = Object.values(site.social || {}).filter(v => /^https?:/.test(v));
   if (same.length) o.sameAs = same;
-  if (site.email && !isPH(site.email)) o.email = site.email;
   if (site.fondat && !isPH(site.fondat)) o.foundingDate = site.fondat;
   return o;
 };
@@ -429,7 +439,11 @@ fs.writeFileSync(path.join(DIST, 'img', 'favicon.svg'), `<svg xmlns="http://www.
   const extra = [['/evenimente/', 'Evenimente', 'eveniment', `${evViitoare.length} viitoare`], ['/stiri/', 'Știri', 'stiri', `${stiri.length} articole`], ['/harta/', 'Hartă', 'harta', `${locuri.filter(l => l.lat != null).length} pe hartă`]]
     .map(([h, n, ic, nr]) => `<a class="cat-card cat-card--alt" href="${h}">${SVG.cat[ic]}<span class="cat-card__nume">${n}</span><span class="cat-card__nr">${nr}</span>${SVG.arrowRight}</a>`).join('');
   const recomandate = ['muzeul-ceasului', 'halele-centrale', 'palatul-culturii'].map(s => bySlug[s]).filter(Boolean);
-  const insta = Array.from({ length: 6 }, (_, i) => `<a class="insta__tile" href="${isPH(site.social.instagram) ? '#' : esc(site.social.instagram)}" ${isPH(site.social.instagram) ? '' : 'target="_blank" rel="noopener"'} aria-label="Postare Instagram ${i + 1} – Ploiești 360"><span class="insta__logo"><img src="/img/logo-ploiesti-360.png" alt="" width="40" height="40" loading="lazy"></span><span class="insta__label">Postare ${i + 1}</span></a>`).join('');
+  const postariIG = (instagram.postari || []).filter(p => fs.existsSync(path.join(SRC, 'img', p.imagine))).slice(0, 6);
+  const insta = postariIG.length
+    ? postariIG.map(p => `<a class="insta__tile insta__tile--foto" href="${esc(p.url)}" target="_blank" rel="noopener" aria-label="Postare Instagram din ${dataRo(p.data) || 'Instagram'}: ${esc(p.alt)}"><img src="${imagine(p.imagine, 'Instagram')}" alt="${esc(p.alt)}" loading="lazy" width="640" height="640"><span class="insta__label">${p.data ? esc(dataRo(p.data)) : 'Instagram'}</span></a>`).join('')
+      + (postariIG.length < 6 ? `<a class="insta__tile insta__tile--mai" href="${esc(socialUrl('instagram'))}" target="_blank" rel="noopener"><span class="insta__logo"><img src="/img/logo-ploiesti-360.png" alt="" width="40" height="40" loading="lazy"></span><span class="insta__mai">Vezi toate postările ${SVG.arrowRight}</span></a>` : '')
+    : Array.from({ length: 6 }, (_, i) => `<a class="insta__tile" href="${esc(socialUrl('instagram'))}" target="_blank" rel="noopener" aria-label="Postare Instagram ${i + 1} – Ploiești 360"><span class="insta__logo"><img src="/img/logo-ploiesti-360.png" alt="" width="40" height="40" loading="lazy"></span><span class="insta__label">Postare ${i + 1}</span></a>`).join('');
   const body = `
 <section class="hero">
   <div class="container hero__grid">
@@ -482,15 +496,15 @@ fs.writeFileSync(path.join(DIST, 'img', 'favicon.svg'), `<svg xmlns="http://www.
 <section class="sectiune" aria-labelledby="t-insta">
   <div class="container">
     ${titluSectiune('Ploieștiul, pe Instagram', { link: isPH(site.social.instagram) ? '/despre/' : site.social.instagram, linkText: site.instagramHandle || 'Urmărește-ne' }).replace('<h2', '<h2 id="t-insta"')}
-    <!-- Feed Instagram: placeholder. Înlocuiește grila de mai jos cu un embed oficial (postări individuale: instagram.com → ... → Embed) sau cu un widget de feed (ex. Behold, LightWidget). -->
-    <div class="insta">${insta}</div>
+    <!-- Postările vin din data/instagram.json (node tools/instagram.js). Fără fișier, grila afișează placeholdere. -->
+    <div class="insta${postariIG.length && postariIG.length < 6 ? ' insta--putine' : ''}">${insta}</div>
+    ${instagram.actualizat ? `<p class="insta__nota">Postări preluate de pe Instagram la ${dataRoNum(instagram.actualizat)}.</p>` : ''}
     <div class="urmareste">
       ${SVG.burst('burst--st')}
       <h3 class="urmareste__titlu">Urmărește-ne și hai să explorăm Ploieștiul la 360°!</h3>
       <div class="hero__cta">
-        <a class="btn" href="${isPH(site.social.instagram) ? '/despre/' : esc(site.social.instagram)}" ${isPH(site.social.instagram) ? '' : 'target="_blank" rel="noopener"'}>${SVG.instagram} Instagram</a>
-        <a class="btn btn--contur" href="${isPH(site.social.facebook) ? '/despre/' : esc(site.social.facebook)}" ${isPH(site.social.facebook) ? '' : 'target="_blank" rel="noopener"'}>${SVG.facebook} Facebook</a>
-        <a class="btn btn--contur" href="${isPH(site.social.tiktok) ? '/despre/' : esc(site.social.tiktok)}" ${isPH(site.social.tiktok) ? '' : 'target="_blank" rel="noopener"'}>${SVG.tiktok} TikTok</a>
+        <a class="btn" href="${esc(socialUrl('instagram'))}" target="_blank" rel="noopener">${SVG.instagram} Instagram</a>
+        <a class="btn btn--contur" href="${esc(socialUrl('facebook'))}" target="_blank" rel="noopener">${SVG.facebook} Facebook</a>
       </div>
     </div>
   </div>
@@ -566,7 +580,7 @@ for (const loc of locuri) {
       <figure class="colaj colaj--mare">
         ${SVG.wedges('wedges--dr')}
         <img src="${imagine('locuri/' + loc.imagine, loc.numeScurt || loc.nume)}" alt="${esc(loc.alt)}" width="800" height="600" fetchpriority="high">
-        <figcaption class="vizual-ascuns">${esc(loc.alt)}</figcaption>
+        ${creditCaption('locuri/' + loc.imagine, loc.alt)}
       </figure>
       <aside class="fisa__info" aria-label="Informații practice">
         <h2 class="fisa__info-titlu">Pe scurt</h2>
@@ -695,6 +709,7 @@ for (const loc of locuri) {
     <figure class="colaj colaj--mare colaj--articol">
       ${SVG.wedges('wedges--dr')}
       <img src="${imagine(st.imagine, st.titlu)}" alt="${esc(st.alt)}" width="800" height="600" fetchpriority="high">
+      ${creditCaption(st.imagine, st.alt)}
     </figure>
     <div class="articol__corp">
       ${paragrafe(st.continut)}
@@ -768,10 +783,11 @@ for (const loc of locuri) {
 
 /* --- Despre noi + Contact --- */
 {
-  const socialLista = [['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']].map(([k, l]) => {
+  const socialLista = RETELE.map(([k, l]) => {
     const v = site.social[k];
     return `<li>${SVG[k]} ${isPH(v) ? `<span>${l}: <mark class="de-verificat">${esc(v)}</mark></span>` : `<a href="${esc(v)}" target="_blank" rel="noopener">${l}</a>`}</li>`;
   }).join('');
+  const listaCredite = credite => credite.map(c => `<li><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.titlu)}</a> – ${esc(c.autor)}, <a href="${esc(c.licentaUrl || c.url)}" target="_blank" rel="noopener">${esc(c.licenta)}</a>, ${esc(c.sursa)}</li>`).join('');
   const body = `
 <section class="pagina-cap">
   <div class="container container--ingust">
@@ -799,46 +815,25 @@ for (const loc of locuri) {
     </div>
     <div class="caseta caseta--alb">
       <h2 class="subliniat subliniat--mic"><span>Ne găsești pe</span>${SVG.underline()}</h2>
-      <ul class="lista-social">${socialLista}
-        <li>${SVG.mail} ${isPH(site.email) ? `<span>E-mail: <mark class="de-verificat">${esc(site.email)}</mark></span>` : `<a href="mailto:${esc(site.email)}">${esc(site.email)}</a>`}</li>
-      </ul>
+      <ul class="lista-social">${socialLista}</ul>
     </div>
   </div>
 </section>
 <section class="sectiune" id="contact" aria-labelledby="t-contact">
   <div class="container container--ingust">
     ${titluSectiune('Scrie-ne', { nivel: 2 }).replace('<h2', '<h2 id="t-contact"')}
-    <p class="lead">Ai un loc pe care vrei să-l vedem, un eveniment de anunțat sau o corectură? Trimite-ne un mesaj.</p>
-    <!-- Formularul folosește Netlify Forms (data-netlify). Pe Vercel sau alt host, înlocuiește action cu un serviciu ca Formspree. -->
-    <form class="formular" name="contact" method="POST" action="${site.formularAction && !isPH(site.formularAction) ? esc(site.formularAction) : '/despre/?trimis=1#contact'}" data-netlify="true" netlify-honeypot="bot-field">
-      <input type="hidden" name="form-name" value="contact">
-      <p class="vizual-ascuns"><label>Nu completa acest câmp: <input name="bot-field"></label></p>
-      <div class="formular__rand">
-        <label for="nume">Nume</label>
-        <input id="nume" name="nume" type="text" autocomplete="name" required>
-      </div>
-      <div class="formular__rand">
-        <label for="email">E-mail</label>
-        <input id="email" name="email" type="email" autocomplete="email" required>
-      </div>
-      <div class="formular__rand">
-        <label for="subiect">Subiect</label>
-        <select id="subiect" name="subiect">
-          <option>Propun un loc</option>
-          <option>Anunț un eveniment</option>
-          <option>Corectură / informație greșită</option>
-          <option>Colaborare</option>
-          <option>Altceva</option>
-        </select>
-      </div>
-      <div class="formular__rand">
-        <label for="mesaj">Mesaj</label>
-        <textarea id="mesaj" name="mesaj" rows="6" required></textarea>
-      </div>
-      <p class="formular__consimtamant"><label><input type="checkbox" name="acord" required> Sunt de acord ca datele din formular să fie folosite doar pentru a-mi răspunde.</label></p>
-      <button class="btn" type="submit">Trimite mesajul ${SVG.arrowRight}</button>
-      <p class="formular__ok gol--ascuns" data-formular-ok role="status">Mulțumim! Am primit mesajul tău și revenim cât de curând.</p>
-    </form>
+    <p class="lead">Ai un loc pe care vrei să-l vedem, un eveniment de anunțat sau o corectură? Trimite-ne un mesaj pe Instagram sau pe Facebook. Sunt singurele noastre canale de contact.</p>
+    <div class="hero__cta">
+      <a class="btn" href="${esc(socialUrl('instagram'))}" target="_blank" rel="noopener">${SVG.instagram} Mesaj pe Instagram</a>
+      <a class="btn btn--contur" href="${esc(socialUrl('facebook'))}" target="_blank" rel="noopener">${SVG.facebook} Mesaj pe Facebook</a>
+    </div>
+  </div>
+</section>
+<section class="sectiune sectiune--sus" id="credite-foto" aria-labelledby="t-credite">
+  <div class="container container--ingust">
+    ${titluSectiune('Credite foto', { nivel: 2 }).replace('<h2', '<h2 id="t-credite"')}
+    <p>Fotografiile de pe site provin de pe Wikimedia Commons și sunt publicate sub licențe libere. Pozele restaurantelor și cafenelelor sunt ilustrative, nu sunt făcute în localurile respective.</p>
+    <ul class="lista-credite">${listaCredite(crediteFoto)}</ul>
   </div>
 </section>`;
   scrie('/despre/', layout({

@@ -6,16 +6,12 @@
   "basePath": "",
   "basePathNota": "Subfolderul în care e publicat site-ul. Gol pentru domeniu propriu; pe GitHub Pages workflow-ul setează automat /ploiesti360.",
   "descriere": "Ploiești 360 este hub-ul central pentru tot ce se poate vedea și face în Ploiești: atracții, clădiri istorice, muzee, restaurante, cafenele, parcuri, evenimente și știri locale.",
-  "email": "[EMAIL]",
-  "formularAction": "",
-  "formularActionNota": "Gol = Netlify Forms (merge doar pe Netlify). Pe GitHub Pages/Vercel pune un endpoint Formspree, ex. https://formspree.io/f/xxxxxxxx.",
   "social": {
-    "instagram": "[LINK INSTAGRAM]",
-    "facebook": "[LINK FACEBOOK]",
-    "tiktok": "[LINK TIKTOK]"
+    "instagram": "https://www.instagram.com/ploiesti_360/",
+    "facebook": "https://www.facebook.com/p/Ploiesti360-61592551687689/"
   },
-  "instagramHandle": "@ploiesti360",
-  "instagramHandleNota": "[DE VERIFICAT] handle-ul real de Instagram",
+  "contactNota": "Singurele canale de contact sunt Instagram și Facebook (câmpul social). Nu există e-mail sau formular.",
+  "instagramHandle": "@ploiesti_360",
   "ratingData": "2026-09-17",
   "ratingSursa": "Rating Google, citit prin Restaurant Guru la 17.09.2026. Verifică direct pe Google Maps înainte de lansare.",
   "limba": "ro",

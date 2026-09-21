@@ -6,7 +6,10 @@
   "scripts": {
     "build": "node build.js",
     "placeholdere": "node build.js --placeholdere",
+    "instagram": "node tools/instagram.js",
     "dev": "node build.js && python3 -m http.server 8080 --directory dist"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }
