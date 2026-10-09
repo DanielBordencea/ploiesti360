@@ -17,5 +17,7 @@
   "limba": "ro",
   "locale": "ro_RO",
   "fondat": "2026",
-  "fondatNota": "[DE VERIFICAT] anul în care a pornit proiectul (apare în JSON-LD Organization)"
+  "fondatNota": "[DE VERIFICAT] anul în care a pornit proiectul (apare în JSON-LD Organization)",
+  "adminApi": "",
+  "adminApiNota": "Adresa worker-ului Cloudflare care publică articolele trimise din /admin/ (ex. https://ploiesti360-admin.<cont>.workers.dev). Vezi README › Pagina de admin."
 }

@@ -110,6 +110,34 @@ Contactul se face exclusiv prin Instagram și Facebook (linkurile din `data/site
 
 2. `node build.js`.
 
+## Pagina de admin (articole scrise de studenți)
+
+La `/admin/` există un formular simplu: **titlu, poză, locație, categorie, text, nume autor**. Studenții intră cu o parolă comună, apasă „Publică articolul”, iar articolul apare pe site în 1–2 minute, cu același aspect ca restul știrilor (listă, pagina de start, pagina locului). Nu au nevoie de cont GitHub.
+
+Cum funcționează: formularul trimite articolul la un mic serviciu pe Cloudflare (`worker/worker.js`), care verifică parola și face un commit în repo cu poza (`src/img/stiri/<slug>.jpg`, micșorată automat la max. 1600px) și articolul adăugat în `data/stiri.json` (câmpuri noi: `locatie`, `autor`). Push-ul pornește workflow-ul de GitHub Pages ca de obicei.
+
+### Configurare (o singură dată)
+
+1. **Token GitHub**: GitHub → Settings → Developer settings → Personal access tokens → *Fine-grained tokens* → Generate. Repository access: *Only select repositories* → `ploiesti360`. Permissions → *Contents: Read and write*. Copiază tokenul.
+2. **Cont Cloudflare** gratuit (dash.cloudflare.com), apoi în terminal:
+   ```bash
+   cd worker
+   npx wrangler login                      # se deschide browserul
+   npx wrangler secret put GITHUB_TOKEN    # lipește tokenul de la pasul 1
+   npx wrangler secret put ADMIN_PASSWORD  # parola pe care o dai studenților
+   npx wrangler deploy                     # afișează adresa, ex. https://ploiesti360-admin.<cont>.workers.dev
+   ```
+3. Pune adresa afișată în `data/site.json` → `adminApi`, comite și dă push.
+4. Trimite studenților linkul `https://<site>/admin/` și parola.
+
+Când treci pe domeniu propriu, schimbă `ALLOWED_ORIGIN` din `worker/wrangler.toml` (ex. `https://ploiesti360.ro`) și rulează din nou `npx wrangler deploy`.
+
+### Întreținere
+
+- **Schimbi parola** (ex. a plecat cineva din echipă): `npx wrangler secret put ADMIN_PASSWORD` în `worker/`. Efectul e imediat.
+- **Ștergi sau corectezi un articol**: pe GitHub, editează `data/stiri.json` (șterge blocul articolului) și, opțional, poza din `src/img/stiri/`. Fiecare articol trimis din admin e un commit separat („Articol nou: … (scris de …)”), deci se poate anula și cu *Revert*.
+- Tokenul GitHub expiră la data aleasă la creare; când expiră, publicarea dă eroare. Generează altul și rulează din nou `npx wrangler secret put GITHUB_TOKEN`.
+
 ## Cum adaugi un loc
 
 În `data/locuri.json`, copiază un bloc din aceeași categorie. Câmpuri importante: `slug` (adresa paginii), `categorie` (atractii | cladiri-istorice | restaurante-cafenele | parcuri), `categorii` (unde apare listat), `tip` (Schema.org: Museum, TouristAttraction, LandmarksOrHistoricalBuildings, Restaurant, CafeOrCoffeeShop, Park), `subtip` (doar pentru restaurante-cafenele: restaurant | cafenea), `rating` (doar restaurante/cafenele: `{"valoare": 4.5, "recenzii": 120}` sau lipsă → [RATING DE VERIFICAT]), `lat`/`lng` (pentru hartă), `maps` (link Google Maps), `imagine` (fișier în `src/img/locuri/`).

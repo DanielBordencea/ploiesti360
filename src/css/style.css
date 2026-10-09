@@ -438,3 +438,6 @@ mark.de-verificat { background: var(--galben); color: var(--navy); font-weight: 
   h1, h2, h3 { color: #000; text-shadow: none; }
   .card, .fisa__info, .ev { box-shadow: none; transform: none; border: 1px solid #999; }
 }
+
+/* ---------- articol: locație ---------- */
+.articol__loc { display: inline-flex; align-items: center; gap: .3rem; }

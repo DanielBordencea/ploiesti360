@@ -93,7 +93,7 @@ const cleanPH = s => String(s || '').replace(PH, '').replace(/\s+/g, ' ').replac
 function inline(s) {
   let t = fmt(s);
   t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => `<a href="${esc(href)}">${txt}</a>`);
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => /^(\/|https?:)/i.test(href) ? `<a href="${esc(href)}">${txt}</a>` : txt);
   return t;
 }
 const paragrafe = arr => (arr || []).map(p => {
@@ -390,7 +390,7 @@ const ldArticle = st => ({
   '@context': 'https://schema.org', '@type': 'NewsArticle', headline: cleanPH(st.titlu), description: cleanPH(st.rezumat),
   datePublished: st.data, dateModified: st.data, inLanguage: 'ro', articleSection: st.categorie,
   image: [abs(imagine(st.imagine, st.titlu))], mainEntityOfPage: abs(`/stiri/${st.slug}/`),
-  author: { '@type': 'Organization', name: site.nume, url: abs('/') },
+  author: st.autor ? { '@type': 'Person', name: st.autor } : { '@type': 'Organization', name: site.nume, url: abs('/') },
   publisher: { '@type': 'Organization', name: site.nume, logo: { '@type': 'ImageObject', url: abs('/img/logo-ploiesti-360.png') } },
   ...(st.locuri && st.locuri.length ? { about: st.locuri.map(s => bySlug[s]).filter(Boolean).map(l => ({ '@type': l.tip, name: cleanPH(l.nume), url: abs(locUrl(l)) })) } : {})
 });
@@ -702,7 +702,7 @@ for (const loc of locuri) {
   <div class="container container--ingust">
     ${crumbs([['/', 'Acasă'], ['/stiri/', 'Știri'], [null, st.titlu]])}
     <header class="articol__cap">
-      <p class="articol__meta"><span class="badge">${fmt(st.categorie)}</span> <time datetime="${esc(st.data)}">${dataRo(st.data)}</time></p>
+      <p class="articol__meta"><span class="badge">${fmt(st.categorie)}</span> <time datetime="${esc(st.data)}">${dataRo(st.data)}</time>${st.locatie ? ` <span class="articol__loc">${SVG.pin}${fmt(st.locatie)}</span>` : ''}</p>
       <h1 class="subliniat"><span>${fmt(st.titlu)}</span>${SVG.underline()}</h1>
       <p class="lead">${fmt(st.rezumat)}</p>
     </header>
@@ -713,6 +713,7 @@ for (const loc of locuri) {
     </figure>
     <div class="articol__corp">
       ${paragrafe(st.continut)}
+      ${st.autor ? `<p class="articol__sursa">Scris de ${fmt(st.autor)}</p>` : ''}
       ${st.sursa ? `<p class="articol__sursa">Sursa: ${fmt(st.sursa)}</p>` : ''}
     </div>
     <div class="articol__share">
@@ -842,6 +843,71 @@ for (const loc of locuri) {
     urlPath: '/despre/', body, jsonld: [ldOrganization(), { '@context': 'https://schema.org', '@type': 'ContactPage', name: 'Contact Ploiești 360', url: abs('/despre/'), inLanguage: 'ro' }, ldBreadcrumb([['/', 'Acasă'], [null, 'Despre noi']])],
     bodyClass: 'pag-despre'
   }), { priority: '0.6', changefreq: 'monthly' });
+}
+
+/* --- /admin/: formular pentru articole noi (publicate prin worker/, vezi README) --- */
+{
+  const cfg = {
+    api: String(site.adminApi || '').replace(/\/$/, ''),
+    siteUrl: SITE_URL,
+    locuri: locuri.map(l => ({ slug: l.slug, nume: cleanPH(l.nume) })).sort((a, b) => a.nume.localeCompare(b.nume, 'ro')),
+    categorii: [...new Set(['Știri', 'Cultură', 'Evenimente', 'Ghid', 'Comunitate', 'Transport', ...stiri.map(s => cleanPH(s.categorie))])]
+  };
+  const html = `<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrie un articol | ${esc(site.nume)}</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1C2B5D">
+<link rel="icon" href="/img/logo-ploiesti-360.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="pag-admin">
+<main class="sectiune"><div class="container container--ingust">
+  <p><a class="link-sageata" href="/">${SVG.arrowRight} Înapoi pe site</a></p>
+  <h1 class="subliniat"><span>Scrie un articol</span>${SVG.underline()}</h1>
+
+  <form id="login" class="formular" hidden>
+    <p>Introdu parola primită de la echipa Ploiești 360.</p>
+    <div class="formular__rand"><label for="parola">Parola</label><input type="password" id="parola" autocomplete="current-password" required></div>
+    <button class="btn" type="submit">Intră</button>
+    <p class="admin__eroare" role="alert"></p>
+  </form>
+
+  <form id="articol" class="formular" hidden novalidate>
+    <div class="formular__rand"><label for="titlu">Titlu *</label><input type="text" id="titlu" maxlength="120" required placeholder="Ex.: Toamna la Muzeul Ceasului"></div>
+    <div class="formular__rand"><label for="poza">Poză *</label><input type="file" id="poza" accept="image/*" required><img id="poza-prev" class="admin__prev" alt="" hidden><small class="mut">Folosește doar poze făcute de tine sau pe care ai voie să le publici.</small></div>
+    <div class="formular__rand"><label for="loc">Locația *</label>
+      <select id="loc" required><option value="">Alege locul…</option>${cfg.locuri.map(l => `<option value="${esc(l.slug)}">${esc(l.nume)}</option>`).join('')}<option value="__alt">Alt loc (scriu eu)</option></select>
+      <input type="text" id="locatie" maxlength="120" placeholder="Ex.: Strada Ștefan cel Mare, Ploiești" hidden>
+    </div>
+    <div class="formular__rand"><label for="categorie">Categorie</label><select id="categorie">${cfg.categorii.map(c => `<option>${esc(c)}</option>`).join('')}</select></div>
+    <div class="formular__rand"><label for="text">Textul articolului *</label><textarea id="text" rows="12" required placeholder="Scrie normal. Lasă un rând liber între paragrafe."></textarea>
+      <small class="mut">Un rând liber = paragraf nou. Pentru subtitlu începe rândul cu ## . Pentru bold: **cuvânt**.</small></div>
+    <div class="formular__rand"><label for="autor">Numele tău *</label><input type="text" id="autor" maxlength="60" required autocomplete="name"></div>
+    <button class="btn" type="submit" id="publica">Publică articolul</button>
+    <p class="admin__eroare" role="alert"></p>
+  </form>
+
+  <div id="gata" class="formular" hidden>
+    <h2>Gata, articolul e trimis!</h2>
+    <p>Apare pe site în 1–2 minute, la adresa:</p>
+    <p><a id="gata-link" href="#" target="_blank" rel="noopener"></a></p>
+    <button class="btn" type="button" id="altul">Scrie alt articol</button>
+  </div>
+
+  <p id="neconfigurat" class="formular" hidden>Pagina nu e încă legată de serviciul de publicare (câmpul <code>adminApi</code> din <code>data/site.json</code>).</p>
+</div></main>
+<script type="application/json" id="admin-cfg">${JSON.stringify(cfg).replace(/</g, '\\u003c')}</script>
+<script src="/js/admin.js"></script>
+</body>
+</html>`;
+  scrie('/admin/', html, { sitemap: false });
 }
 
 /* --- 404 --- */

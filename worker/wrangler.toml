@@ -1,0 +1,15 @@
+# Cloudflare Worker care publică articolele trimise din /admin/.
+# Deploy: vezi README › „Pagina de admin”.
+name = "ploiesti360-admin"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+GITHUB_REPO = "DanielBordencea/ploiesti360"
+GITHUB_BRANCH = "main"
+# de unde are voie să vină formularul (adresa site-ului, fără subfolder și fără / la final)
+ALLOWED_ORIGIN = "https://danielbordencea.github.io"
+
+# Secrete (NU se scriu aici):
+#   npx wrangler secret put ADMIN_PASSWORD   → parola pe care o dai studenților
+#   npx wrangler secret put GITHUB_TOKEN     → token GitHub fine-grained, doar repo-ul ploiesti360, Contents: Read and write
