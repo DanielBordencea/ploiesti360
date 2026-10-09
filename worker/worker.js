@@ -37,10 +37,23 @@ export default {
 
     const cale = new URL(req.url).pathname;
     if (cale === '/verifica') return raspuns(200, { ok: true });
-    if (cale !== '/publica') return raspuns(404, { eroare: 'Adresă necunoscută' });
+    if (!['/publica', '/lista', '/sterge'].includes(cale)) return raspuns(404, { eroare: 'Adresă necunoscută' });
 
     let d;
     try { d = await req.json(); } catch { return raspuns(400, { eroare: 'Date invalide' }); }
+
+    if (cale === '/lista') {
+      try { return raspuns(200, { stiri: await lista(env) }); }
+      catch (e) { return raspuns(502, { eroare: 'Nu pot citi articolele: ' + e.message }); }
+    }
+    if (cale === '/sterge') {
+      if (!/^[a-z0-9-]{1,90}$/.test(d.slug || '')) return raspuns(400, { eroare: 'Articol invalid' });
+      try {
+        const gasit = await sterge(env, d.slug);
+        return gasit ? raspuns(200, { ok: true }) : raspuns(404, { eroare: 'Articolul nu mai există' });
+      } catch (e) { return raspuns(502, { eroare: 'GitHub a refuzat ștergerea: ' + e.message }); }
+    }
+
     const art = valideaza(d);
     if (art.eroare) return raspuns(400, art);
 
@@ -90,23 +103,26 @@ const slugify = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 const azi = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date());
 
-/* ---------- GitHub: un singur commit cu poza + stiri.json ---------- */
+/* ---------- GitHub API ---------- */
+const ghClient = env => async (cale, opt = {}) => {
+  const r = await fetch(`${GH}/repos/${env.GITHUB_REPO}${cale}`, {
+    ...opt,
+    headers: {
+      'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
+      'Accept': opt.raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'ploiesti360-admin',
+      ...(opt.body ? { 'Content-Type': 'application/json' } : {})
+    }
+  });
+  if (!r.ok) { const e = new Error(`${r.status} ${(await r.text()).slice(0, 200)}`); e.status = r.status; throw e; }
+  return opt.raw ? r.text() : r.json();
+};
+
+/* ---------- publicare: un singur commit cu poza + stiri.json ---------- */
 async function publica(env, art) {
-  const repo = env.GITHUB_REPO, branch = env.GITHUB_BRANCH || 'main';
-  const gh = async (cale, opt = {}) => {
-    const r = await fetch(`${GH}/repos/${repo}${cale}`, {
-      ...opt,
-      headers: {
-        'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
-        'Accept': opt.raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'ploiesti360-admin',
-        ...(opt.body ? { 'Content-Type': 'application/json' } : {})
-      }
-    });
-    if (!r.ok) { const e = new Error(`${r.status} ${(await r.text()).slice(0, 200)}`); e.status = r.status; throw e; }
-    return opt.raw ? r.text() : r.json();
-  };
+  const branch = env.GITHUB_BRANCH || 'main';
+  const gh = ghClient(env);
 
   // blob-ul pozei nu depinde de starea repo-ului, îl urcăm o singură dată
   const blobPoza = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: art.poza, encoding: 'base64' }) });
@@ -165,6 +181,64 @@ async function publica(env, art) {
     }
   }
   throw new Error('prea multe publicări simultane, încearcă din nou');
+}
+
+/* ---------- lista articolelor (pentru ștergere) ---------- */
+async function lista(env) {
+  const gh = ghClient(env);
+  const stiri = JSON.parse(await gh(`/contents/data/stiri.json?ref=${env.GITHUB_BRANCH || 'main'}`, { raw: true }));
+  return stiri.map(s => ({ slug: s.slug, titlu: s.titlu, data: s.data, autor: s.autor || '', categorie: s.categorie || '' }));
+}
+
+/* ---------- ștergere: un commit care scoate articolul, poza lui și creditul foto ---------- */
+async function sterge(env, slug) {
+  const branch = env.GITHUB_BRANCH || 'main';
+  const gh = ghClient(env);
+  for (let incercare = 0; incercare < 4; incercare++) {
+    const ref = await gh(`/git/ref/heads/${branch}`);
+    const parinte = ref.object.sha;
+    const commit = await gh(`/git/commits/${parinte}`);
+    const citeste = async f => gh(`/contents/data/${f}?ref=${parinte}`, { raw: true });
+    const stiri = JSON.parse(await citeste('stiri.json'));
+    const art = stiri.find(s => s.slug === slug);
+    if (!art) return false;
+    const ramase = stiri.filter(s => s.slug !== slug);
+    const modificari = [{ path: 'data/stiri.json', mode: '100644', type: 'blob', content: JSON.stringify(ramase, null, 2) + '\n' }];
+
+    // poza se șterge doar dacă nu o mai folosește nimic altceva de pe site
+    const img = art.imagine;
+    if (img) {
+      const [locuri, evenimente] = await Promise.all(['locuri.json', 'evenimente.json'].map(f => citeste(f).catch(() => '')));
+      const folosita = JSON.stringify(ramase).includes(img) || locuri.includes(img) || evenimente.includes(img);
+      if (!folosita) {
+        const fisier = `src/img/${img}`;
+        const exista = await gh(`/contents/${fisier}?ref=${parinte}`).then(() => true, e => { if (e.status === 404) return false; throw e; });
+        if (exista) modificari.push({ path: fisier, mode: '100644', type: 'blob', sha: null });
+        const credite = JSON.parse(await citeste('credite-foto.json').catch(() => '[]'));
+        if (credite.some(c => c.fisier === img)) {
+          modificari.push({ path: 'data/credite-foto.json', mode: '100644', type: 'blob', content: JSON.stringify(credite.filter(c => c.fisier !== img), null, 2) + '\n' });
+        }
+      }
+    }
+
+    const tree = await gh('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: commit.tree.sha, tree: modificari }) });
+    const nou = await gh('/git/commits', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: `Articol șters: ${art.titlu} (din /admin)`,
+        tree: tree.sha,
+        parents: [parinte],
+        author: { name: 'Ploiești 360 Admin', email: 'admin@ploiesti360.invalid' }
+      })
+    });
+    try {
+      await gh(`/git/refs/heads/${branch}`, { method: 'PATCH', body: JSON.stringify({ sha: nou.sha, force: false }) });
+      return true;
+    } catch (e) {
+      if (e.status !== 422) throw e;
+    }
+  }
+  throw new Error('prea multe modificări simultane, încearcă din nou');
 }
 
 /* comparare în timp constant (nu dezvăluie prin timing câte caractere din parolă sunt corecte) */

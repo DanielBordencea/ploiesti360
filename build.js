@@ -901,6 +901,14 @@ for (const loc of locuri) {
     <button class="btn" type="button" id="altul">Scrie alt articol</button>
   </div>
 
+  <section id="gestiune" class="formular admin__gestiune" hidden aria-labelledby="t-gestiune">
+    <h2 id="t-gestiune">Articole publicate</h2>
+    <p class="mut">Ștergerea scoate articolul de pe site (în 1–2 minute), împreună cu poza lui.</p>
+    <button class="btn" type="button" id="incarca-lista">Arată articolele</button>
+    <ul id="lista" class="admin__lista"></ul>
+    <p class="admin__eroare" role="alert"></p>
+  </section>
+
   <p id="neconfigurat" class="formular" hidden>Pagina nu e încă legată de serviciul de publicare (câmpul <code>adminApi</code> din <code>data/site.json</code>).</p>
 </div></main>
 <script type="application/json" id="admin-cfg">${JSON.stringify(cfg).replace(/</g, '\\u003c')}</script>

@@ -10,7 +10,10 @@
 
   function citeste() { try { return sessionStorage.getItem(CHEIE) || ''; } catch (e) { return ''; } }
   function salveaza(v) { try { if (v) sessionStorage.setItem(CHEIE, v); else sessionStorage.removeItem(CHEIE); } catch (e) {} }
-  function arata(el) { [login, form, gata].forEach(function (x) { x.hidden = x !== el; }); }
+  function arata(el) {
+    [login, form, gata].forEach(function (x) { x.hidden = x !== el; });
+    $('gestiune').hidden = el === login;
+  }
   function eroare(el, msg) { el.querySelector('.admin__eroare').textContent = msg || ''; }
 
   function cerere(cale, corp) {
@@ -104,4 +107,54 @@
   });
 
   $('altul').addEventListener('click', function () { arata(form); });
+
+  /* --- ștergere --- */
+  var gestiune = $('gestiune'), lista = $('lista');
+  function deconectat() { salveaza(''); arata(login); eroare(login, 'Parola nu mai e valabilă. Intră din nou.'); }
+
+  function incarcaLista() {
+    var btn = $('incarca-lista');
+    eroare(gestiune, '');
+    btn.disabled = true; btn.textContent = 'Se încarcă…';
+    cerere('/lista').then(function (r) {
+      lista.textContent = '';
+      if (!r.stiri.length) { lista.innerHTML = '<li class="mut">Nu există articole.</li>'; return; }
+      r.stiri.forEach(function (s) {
+        var li = document.createElement('li');
+        var info = document.createElement('div');
+        var a = document.createElement('a');
+        a.href = cfg.siteUrl + '/stiri/' + s.slug + '/'; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = s.titlu;
+        var meta = document.createElement('small');
+        meta.textContent = [s.data, s.categorie, s.autor ? 'de ' + s.autor : ''].filter(Boolean).join(' · ');
+        info.appendChild(a); info.appendChild(meta);
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn--sterge'; b.textContent = 'Șterge';
+        b.addEventListener('click', function () { stergeArticol(s, li, b); });
+        li.appendChild(info); li.appendChild(b);
+        lista.appendChild(li);
+      });
+    }).catch(function (e) {
+      if (e.status === 401) return deconectat();
+      eroare(gestiune, 'Nu pot încărca lista: ' + e.message);
+    }).then(function () { btn.disabled = false; btn.textContent = 'Reîncarcă lista'; });
+  }
+
+  function stergeArticol(s, li, b) {
+    if (!window.confirm('Sigur ștergi articolul „' + s.titlu + '”?\n\nDispare de pe site împreună cu poza lui.')) return;
+    eroare(gestiune, '');
+    b.disabled = true; b.textContent = 'Se șterge…';
+    cerere('/sterge', { slug: s.slug }).then(function () {
+      li.classList.add('admin__sters');
+      li.querySelector('small').textContent = 'Șters. Dispare de pe site în 1–2 minute.';
+      b.remove();
+    }).catch(function (e) {
+      if (e.status === 401) return deconectat();
+      if (e.status === 404) { li.remove(); return; }
+      eroare(gestiune, 'Nu s-a șters: ' + e.message);
+      b.disabled = false; b.textContent = 'Șterge';
+    });
+  }
+
+  $('incarca-lista').addEventListener('click', incarcaLista);
 })();
