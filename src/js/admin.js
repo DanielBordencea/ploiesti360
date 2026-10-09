@@ -16,7 +16,7 @@
   function cerere(cale, corp) {
     return fetch(cfg.api + cale, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + citeste() },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + encodeURIComponent(citeste()) },
       body: JSON.stringify(corp || {})
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {

@@ -26,7 +26,10 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (req.method !== 'POST') return raspuns(405, { eroare: 'Metodă nepermisă' });
 
-    const parola = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const brut = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    // formularul trimite parola cu encodeURIComponent (antetele HTTP nu acceptă diacritice)
+    let parola = '';
+    try { parola = decodeURIComponent(brut); } catch { parola = brut; }
     if (!env.ADMIN_PASSWORD || !(await egal(parola, env.ADMIN_PASSWORD))) {
       await new Promise(r => setTimeout(r, 800)); // încetinește ghicitul parolei
       return raspuns(401, { eroare: 'Parolă greșită' });
