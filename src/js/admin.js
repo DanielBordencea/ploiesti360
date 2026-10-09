@@ -89,7 +89,7 @@
     if (!date.titlu) lipsa.push('titlul');
     if (!date.imagine) lipsa.push('poza');
     if (!loc || (loc === '__alt' && !date.locatie)) lipsa.push('locația');
-    if (date.text.length < 40) lipsa.push('textul (minim câteva rânduri)');
+    if (date.text.length < 40) lipsa.push('textul (minim 40 de caractere, mai scrie ' + (40 - date.text.length) + ')');
     if (!date.autor) lipsa.push('numele tău');
     if (lipsa.length) { eroare(form, 'Completează: ' + lipsa.join(', ') + '.'); return; }
 
