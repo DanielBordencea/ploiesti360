@@ -1,5 +1,20 @@
 [
   {
+    "slug": "testasdwasd",
+    "titlu": "testasdwasd",
+    "data": "2026-10-09",
+    "categorie": "Știri",
+    "rezumat": "sfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasdsfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasd",
+    "continut": [
+      "sfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasdsfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasd"
+    ],
+    "imagine": "stiri/testasdwasd.jpg",
+    "alt": "testasdwasd",
+    "locatie": "test",
+    "autor": "test daniel",
+    "locuri": []
+  },
+  {
     "slug": "noile-tramvaie-ajung-mai-devreme",
     "titlu": "Noile tramvaie ajung mai devreme",
     "data": "2026-09-17",
@@ -15,8 +30,13 @@
     "imagine": "stiri/tramvaie-noi-ploiesti.jpg",
     "alt": "Tramvai galben pe liniile din Ploiești",
     "sursa": "Primăria Municipiului Ploiești",
-    "locuri": ["bulevardul-republicii", "halele-centrale"],
-    "keywords": ["știri Ploiești"]
+    "locuri": [
+      "bulevardul-republicii",
+      "halele-centrale"
+    ],
+    "keywords": [
+      "știri Ploiești"
+    ]
   },
   {
     "slug": "ce-sa-vizitezi-in-ploiesti",
@@ -43,8 +63,18 @@
     "imagine": "stiri/ce-sa-vizitezi-in-ploiesti.jpg",
     "alt": "Colaj cu obiective turistice din Ploiești: Muzeul Ceasului, Halele Centrale și Palatul Culturii",
     "sursa": "",
-    "locuri": ["muzeul-ceasului", "halele-centrale", "palatul-culturii", "muzeul-judetean", "casa-paul-constantinescu", "bulevardul-republicii"],
-    "keywords": ["ce să vizitezi în Ploiești", "obiective turistice Ploiești"]
+    "locuri": [
+      "muzeul-ceasului",
+      "halele-centrale",
+      "palatul-culturii",
+      "muzeul-judetean",
+      "casa-paul-constantinescu",
+      "bulevardul-republicii"
+    ],
+    "keywords": [
+      "ce să vizitezi în Ploiești",
+      "obiective turistice Ploiești"
+    ]
   },
   {
     "slug": "weekend-in-ploiesti-city-break",
@@ -65,7 +95,23 @@
     "imagine": "stiri/weekend-in-ploiesti.jpg",
     "alt": "Weekend în Ploiești: plimbare prin centrul istoric al orașului",
     "sursa": "",
-    "locuri": ["cafeneaua-lui-caragiale", "muzeul-judetean", "muzeul-ceasului", "interbelic-by-zexe", "casa-caragiale", "parcul-central", "halele-centrale", "parcul-toma-socolescu", "bulevardul-republicii", "piagi-cafe", "parcul-mihai-viteazul", "parcul-municipal"],
-    "keywords": ["weekend în Ploiești", "city break Ploiești"]
+    "locuri": [
+      "cafeneaua-lui-caragiale",
+      "muzeul-judetean",
+      "muzeul-ceasului",
+      "interbelic-by-zexe",
+      "casa-caragiale",
+      "parcul-central",
+      "halele-centrale",
+      "parcul-toma-socolescu",
+      "bulevardul-republicii",
+      "piagi-cafe",
+      "parcul-mihai-viteazul",
+      "parcul-municipal"
+    ],
+    "keywords": [
+      "weekend în Ploiești",
+      "city break Ploiești"
+    ]
   }
 ]
