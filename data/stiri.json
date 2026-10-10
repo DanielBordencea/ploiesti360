@@ -1,20 +1,5 @@
 [
   {
-    "slug": "testasdwasd",
-    "titlu": "testasdwasd",
-    "data": "2026-10-09",
-    "categorie": "Știri",
-    "rezumat": "sfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasdsfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasd",
-    "continut": [
-      "sfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasdsfdasdfasfasfasfasdadadadadadafseweqwdasasweasdfdvxcvadadasdvxdsadasdasdasd"
-    ],
-    "imagine": "stiri/testasdwasd.jpg",
-    "alt": "testasdwasd",
-    "locatie": "test",
-    "autor": "test daniel",
-    "locuri": []
-  },
-  {
     "slug": "noile-tramvaie-ajung-mai-devreme",
     "titlu": "Noile tramvaie ajung mai devreme",
     "data": "2026-09-17",
