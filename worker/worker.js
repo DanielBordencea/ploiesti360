@@ -14,8 +14,11 @@ const GH = 'https://api.github.com';
 
 export default {
   async fetch(req, env) {
+    // ALLOWED_ORIGIN poate fi o listă separată prin virgulă; răspundem cu adresa care a cerut, dacă e în listă
+    const permise = (env.ALLOWED_ORIGIN || '*').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
+    const origine = req.headers.get('Origin') || '';
     const cors = {
-      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
+      'Access-Control-Allow-Origin': permise.includes('*') ? '*' : (permise.includes(origine) ? origine : permise[0]),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
@@ -43,13 +46,14 @@ export default {
     try { d = await req.json(); } catch { return raspuns(400, { eroare: 'Date invalide' }); }
 
     if (cale === '/lista') {
-      try { return raspuns(200, { stiri: await lista(env) }); }
+      try { return raspuns(200, { articole: await lista(env) }); }
       catch (e) { return raspuns(502, { eroare: 'Nu pot citi articolele: ' + e.message }); }
     }
     if (cale === '/sterge') {
-      if (!/^[a-z0-9-]{1,90}$/.test(d.slug || '')) return raspuns(400, { eroare: 'Articol invalid' });
+      const tip = d.tip || 'stire';
+      if (!TIPURI[tip] || !/^[a-z0-9-]{1,90}$/.test(d.slug || '')) return raspuns(400, { eroare: 'Articol invalid' });
       try {
-        const gasit = await sterge(env, d.slug);
+        const gasit = await sterge(env, tip, d.slug);
         return gasit ? raspuns(200, { ok: true }) : raspuns(404, { eroare: 'Articolul nu mai există' });
       } catch (e) { return raspuns(502, { eroare: 'GitHub a refuzat ștergerea: ' + e.message }); }
     }
@@ -183,33 +187,54 @@ async function publica(env, art) {
   throw new Error('prea multe publicări simultane, încearcă din nou');
 }
 
-/* ---------- lista articolelor (pentru ștergere) ---------- */
+/* ---------- lista a tot ce e pe site (știri, locuri, evenimente), pentru ștergere ---------- */
+const TIPURI = {
+  stire:     { fisier: 'stiri.json',      cheie: 'slug', eticheta: 'Știre',     poza: s => s.imagine },
+  loc:       { fisier: 'locuri.json',     cheie: 'slug', eticheta: 'Loc',       poza: l => l.imagine && 'locuri/' + l.imagine },
+  eveniment: { fisier: 'evenimente.json', cheie: 'id',   eticheta: 'Eveniment', poza: e => e.imagine }
+};
+
 async function lista(env) {
   const gh = ghClient(env);
-  const stiri = JSON.parse(await gh(`/contents/data/stiri.json?ref=${env.GITHUB_BRANCH || 'main'}`, { raw: true }));
-  return stiri.map(s => ({ slug: s.slug, titlu: s.titlu, data: s.data, autor: s.autor || '', categorie: s.categorie || '' }));
+  const ref = env.GITHUB_BRANCH || 'main';
+  const [stiri, locuri, evenimente] = await Promise.all(['stiri.json', 'locuri.json', 'evenimente.json']
+    .map(async f => JSON.parse(await gh(`/contents/data/${f}?ref=${ref}`, { raw: true }))));
+  return [
+    ...stiri.map(s => ({ tip: 'stire', slug: s.slug, titlu: s.titlu, data: s.data, autor: s.autor || '', categorie: s.categorie || '', url: `/stiri/${s.slug}/` })),
+    ...evenimente.map(e => ({ tip: 'eveniment', slug: e.id, titlu: e.titlu, data: e.data, categorie: e.categorie || '', url: `/evenimente/#${e.id}` })),
+    ...locuri.filter(l => l.publicat !== false).map(l => ({ tip: 'loc', slug: l.slug, titlu: l.nume, data: '', categorie: l.eticheta || '', url: `/${l.categorie}/${l.slug}/` }))
+  ];
 }
 
-/* ---------- ștergere: un commit care scoate articolul, poza lui și creditul foto ---------- */
-async function sterge(env, slug) {
+/* ---------- ștergere: un commit care scoate elementul, poza lui, creditul foto și trimiterile spre el ---------- */
+async function sterge(env, tip, slug) {
   const branch = env.GITHUB_BRANCH || 'main';
   const gh = ghClient(env);
+  const T = TIPURI[tip];
   for (let incercare = 0; incercare < 4; incercare++) {
     const ref = await gh(`/git/ref/heads/${branch}`);
     const parinte = ref.object.sha;
     const commit = await gh(`/git/commits/${parinte}`);
     const citeste = async f => gh(`/contents/data/${f}?ref=${parinte}`, { raw: true });
-    const stiri = JSON.parse(await citeste('stiri.json'));
-    const art = stiri.find(s => s.slug === slug);
+    const date = {};
+    await Promise.all(['stiri.json', 'locuri.json', 'evenimente.json'].map(async f => { date[f] = JSON.parse(await citeste(f)); }));
+    const art = date[T.fisier].find(x => x[T.cheie] === slug);
     if (!art) return false;
-    const ramase = stiri.filter(s => s.slug !== slug);
-    const modificari = [{ path: 'data/stiri.json', mode: '100644', type: 'blob', content: JSON.stringify(ramase, null, 2) + '\n' }];
+    date[T.fisier] = date[T.fisier].filter(x => x[T.cheie] !== slug);
+    const schimbate = new Set([T.fisier]);
+
+    // un loc șters nu trebuie să mai apară ca legătură în articole, evenimente sau alte locuri
+    if (tip === 'loc') {
+      for (const s of date['stiri.json']) if ((s.locuri || []).includes(slug)) { s.locuri = s.locuri.filter(x => x !== slug); schimbate.add('stiri.json'); }
+      for (const e of date['evenimente.json']) if (e.locSlug === slug) { e.locSlug = ''; schimbate.add('evenimente.json'); }
+      for (const l of date['locuri.json']) if ((l.legaturi || []).includes(slug)) { l.legaturi = l.legaturi.filter(x => x !== slug); schimbate.add('locuri.json'); }
+    }
+    const modificari = [...schimbate].map(f => ({ path: `data/${f}`, mode: '100644', type: 'blob', content: JSON.stringify(date[f], null, 2) + '\n' }));
 
     // poza se șterge doar dacă nu o mai folosește nimic altceva de pe site
-    const img = art.imagine;
+    const img = T.poza(art);
     if (img) {
-      const [locuri, evenimente] = await Promise.all(['locuri.json', 'evenimente.json'].map(f => citeste(f).catch(() => '')));
-      const folosita = JSON.stringify(ramase).includes(img) || locuri.includes(img) || evenimente.includes(img);
+      const folosita = [...date['stiri.json'].map(TIPURI.stire.poza), ...date['evenimente.json'].map(TIPURI.eveniment.poza), ...date['locuri.json'].map(TIPURI.loc.poza)].includes(img);
       if (!folosita) {
         const fisier = `src/img/${img}`;
         const exista = await gh(`/contents/${fisier}?ref=${parinte}`).then(() => true, e => { if (e.status === 404) return false; throw e; });
@@ -225,7 +250,7 @@ async function sterge(env, slug) {
     const nou = await gh('/git/commits', {
       method: 'POST',
       body: JSON.stringify({
-        message: `Articol șters: ${art.titlu} (din /admin)`,
+        message: `${T.eticheta} șters: ${art.titlu || art.nume} (din /admin)`,
         tree: tree.sha,
         parents: [parinte],
         author: { name: 'Ploiești 360 Admin', email: 'admin@ploiesti360.invalid' }

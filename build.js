@@ -903,9 +903,16 @@ for (const loc of locuri) {
 
   <section id="gestiune" class="formular admin__gestiune" hidden aria-labelledby="t-gestiune">
     <h2 id="t-gestiune">Articole publicate</h2>
-    <p class="mut">Ștergerea scoate articolul de pe site (în 1–2 minute), împreună cu poza lui.</p>
+    <p class="mut">Aici apar toate știrile, evenimentele și locurile de pe site. Ștergerea le scoate de pe site (în 1–2 minute), împreună cu poza lor.</p>
     <button class="btn" type="button" id="incarca-lista">Arată articolele</button>
+    <div id="filtre" class="admin__filtre" hidden>
+      <button type="button" class="chip" data-tip="" aria-pressed="true">Toate <span class="chip__nr"></span></button>
+      <button type="button" class="chip" data-tip="stire" aria-pressed="false">Știri <span class="chip__nr"></span></button>
+      <button type="button" class="chip" data-tip="eveniment" aria-pressed="false">Evenimente <span class="chip__nr"></span></button>
+      <button type="button" class="chip" data-tip="loc" aria-pressed="false">Locuri <span class="chip__nr"></span></button>
+    </div>
     <ul id="lista" class="admin__lista"></ul>
+    <nav id="paginare" class="admin__paginare" aria-label="Paginare articole" hidden></nav>
     <p class="admin__eroare" role="alert"></p>
   </section>
 

@@ -112,45 +112,100 @@
   var gestiune = $('gestiune'), lista = $('lista');
   function deconectat() { salveaza(''); arata(login); eroare(login, 'Parola nu mai e valabilă. Intră din nou.'); }
 
+  var PE_PAGINA = 10, toate = [], pagina = 0, filtru = '';
+  var ETICHETE = { stire: 'Știre', eveniment: 'Eveniment', loc: 'Loc' };
+  var paginare = $('paginare'), filtre = $('filtre');
+
   function incarcaLista() {
     var btn = $('incarca-lista');
     eroare(gestiune, '');
     btn.disabled = true; btn.textContent = 'Se încarcă…';
     cerere('/lista').then(function (r) {
-      lista.textContent = '';
-      if (!r.stiri.length) { lista.innerHTML = '<li class="mut">Nu există articole.</li>'; return; }
-      r.stiri.forEach(function (s) {
-        var li = document.createElement('li');
-        var info = document.createElement('div');
-        var a = document.createElement('a');
-        a.href = cfg.siteUrl + '/stiri/' + s.slug + '/'; a.target = '_blank'; a.rel = 'noopener';
-        a.textContent = s.titlu;
-        var meta = document.createElement('small');
-        meta.textContent = [s.data, s.categorie, s.autor ? 'de ' + s.autor : ''].filter(Boolean).join(' · ');
-        info.appendChild(a); info.appendChild(meta);
-        var b = document.createElement('button');
-        b.type = 'button'; b.className = 'btn btn--sterge'; b.textContent = 'Șterge';
-        b.addEventListener('click', function () { stergeArticol(s, li, b); });
-        li.appendChild(info); li.appendChild(b);
-        lista.appendChild(li);
-      });
+      // worker-ul vechi trimitea doar { stiri }
+      toate = (r.articole || (r.stiri || []).map(function (s) { s.tip = 'stire'; s.url = '/stiri/' + s.slug + '/'; return s; }));
+      pagina = 0;
+      filtre.hidden = false;
+      actualizeazaFiltre();
+      deseneaza();
     }).catch(function (e) {
       if (e.status === 401) return deconectat();
       eroare(gestiune, 'Nu pot încărca lista: ' + e.message);
     }).then(function () { btn.disabled = false; btn.textContent = 'Reîncarcă lista'; });
   }
 
+  function vizibile() { return toate.filter(function (s) { return !filtru || s.tip === filtru; }); }
+
+  function actualizeazaFiltre() {
+    Array.prototype.forEach.call(filtre.querySelectorAll('button'), function (b) {
+      var t = b.getAttribute('data-tip');
+      var nr = toate.filter(function (s) { return !t || s.tip === t; }).length;
+      b.querySelector('span').textContent = nr;
+      b.setAttribute('aria-pressed', String(t === filtru));
+    });
+  }
+
+  function deseneaza() {
+    var v = vizibile();
+    var pagini = Math.max(1, Math.ceil(v.length / PE_PAGINA));
+    if (pagina >= pagini) pagina = pagini - 1;
+    lista.textContent = '';
+    if (!v.length) { lista.innerHTML = '<li class="mut">Nu există articole.</li>'; }
+    v.slice(pagina * PE_PAGINA, (pagina + 1) * PE_PAGINA).forEach(function (s) {
+      var li = document.createElement('li');
+      var info = document.createElement('div');
+      var a = document.createElement('a');
+      a.href = cfg.siteUrl + s.url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = s.titlu;
+      var meta = document.createElement('small');
+      meta.textContent = [ETICHETE[s.tip], s.data, s.categorie, s.autor ? 'de ' + s.autor : ''].filter(Boolean).join(' · ');
+      info.appendChild(a); info.appendChild(meta);
+      li.appendChild(info);
+      if (s.sters) {
+        li.classList.add('admin__sters');
+        meta.textContent = 'Șters. Dispare de pe site în 1–2 minute.';
+      } else {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn--sterge'; b.textContent = 'Șterge';
+        b.addEventListener('click', function () { stergeArticol(s, li, b); });
+        li.appendChild(b);
+      }
+      lista.appendChild(li);
+    });
+
+    paginare.textContent = '';
+    paginare.hidden = pagini < 2;
+    if (pagini < 2) return;
+    function buton(text, p, eticheta) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'admin__pag'; b.textContent = text;
+      if (eticheta) b.setAttribute('aria-label', eticheta);
+      if (p === pagina) b.setAttribute('aria-current', 'page');
+      b.disabled = p < 0 || p >= pagini || p === pagina;
+      b.addEventListener('click', function () { pagina = p; deseneaza(); $('t-gestiune').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      paginare.appendChild(b);
+    }
+    buton('‹', pagina - 1, 'Pagina anterioară');
+    for (var i = 0; i < pagini; i++) buton(String(i + 1), i, 'Pagina ' + (i + 1));
+    buton('›', pagina + 1, 'Pagina următoare');
+  }
+
+  filtre.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    filtru = b.getAttribute('data-tip'); pagina = 0;
+    actualizeazaFiltre(); deseneaza();
+  });
+
   function stergeArticol(s, li, b) {
-    if (!window.confirm('Sigur ștergi articolul „' + s.titlu + '”?\n\nDispare de pe site împreună cu poza lui.')) return;
+    var ce = s.tip === 'loc' ? 'locul' : s.tip === 'eveniment' ? 'evenimentul' : 'articolul';
+    if (!window.confirm('Sigur ștergi ' + ce + ' „' + s.titlu + '”?\n\nDispare de pe site împreună cu poza lui.')) return;
     eroare(gestiune, '');
     b.disabled = true; b.textContent = 'Se șterge…';
-    cerere('/sterge', { slug: s.slug }).then(function () {
-      li.classList.add('admin__sters');
-      li.querySelector('small').textContent = 'Șters. Dispare de pe site în 1–2 minute.';
-      b.remove();
+    cerere('/sterge', { tip: s.tip, slug: s.slug }).then(function () {
+      s.sters = true; deseneaza();
     }).catch(function (e) {
       if (e.status === 401) return deconectat();
-      if (e.status === 404) { li.remove(); return; }
+      if (e.status === 404) { toate = toate.filter(function (x) { return x !== s; }); actualizeazaFiltre(); deseneaza(); return; }
       eroare(gestiune, 'Nu s-a șters: ' + e.message);
       b.disabled = false; b.textContent = 'Șterge';
     });

@@ -17,3 +17,11 @@
 .admin__lista small { display: block; margin-top: .2rem; }
 .pag-admin .btn--sterge { flex: none; background: var(--rosu); color: var(--alb); padding: .45em .9em; font-size: .95rem; }
 .admin__sters a { text-decoration: line-through; opacity: .6; }
+.admin__filtre { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.admin__paginare { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1rem; }
+.admin__pag { min-width: 2.5rem; padding: .4em .7em; font: inherit; font-weight: 700; color: var(--navy, #1C2B5D); background: var(--alb, #fff); border: 2px solid currentColor; border-radius: 6px; cursor: pointer; }
+.admin__pag[aria-current="page"] { background: var(--galben, #FFC107); }
+.admin__pag:disabled:not([aria-current]) { opacity: .35; cursor: default; }
+.admin__filtre .chip { color: var(--navy); border-color: var(--navy); }
+.admin__filtre .chip[aria-pressed="true"] { background: var(--galben); border-color: var(--galben-inchis); }
+.admin__gestiune .mut { color: var(--gri-text); }

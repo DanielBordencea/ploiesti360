@@ -7,8 +7,8 @@ compatibility_date = "2026-09-01"
 [vars]
 GITHUB_REPO = "DanielBordencea/ploiesti360"
 GITHUB_BRANCH = "main"
-# de unde are voie să vină formularul (adresa site-ului, fără subfolder și fără / la final)
-ALLOWED_ORIGIN = "https://danielbordencea.github.io"
+# de unde are voie să vină formularul (adresele site-ului, fără subfolder și fără / la final, separate prin virgulă)
+ALLOWED_ORIGIN = "https://danielbordencea.github.io,https://ploiesti360.ro,https://www.ploiesti360.ro,http://localhost:8080,http://localhost:3000,http://127.0.0.1:8080"
 
 # Secrete (NU se scriu aici):
 #   npx wrangler secret put ADMIN_PASSWORD   → parola pe care o dai studenților
